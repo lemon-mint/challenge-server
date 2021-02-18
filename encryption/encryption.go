@@ -19,11 +19,16 @@ type Packer struct {
 }
 
 //NewPacker : Create New Packer
-func NewPacker(key []byte) {
+func NewPacker(key []byte) *Packer {
 	h := blake3.New()
 	h.Write(key)
 	p := new(Packer)
-	p.aead = chacha20poly1305.NewX(h.Sum(nil))
+	var err error
+	p.aead, err = chacha20poly1305.NewX(h.Sum(nil))
+	if err != nil {
+		panic(err)
+	}
+	return p
 }
 
 //NewToken : Create New token
