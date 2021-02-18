@@ -8,13 +8,22 @@ import (
 	"time"
 
 	"github.com/lemon-mint/challenge-server/token"
+	"github.com/zeebo/blake3"
+	"golang.org/x/crypto/chacha20poly1305"
 	"google.golang.org/protobuf/proto"
 )
 
 //Packer : sign encrypt verify decrypt
 type Packer struct {
-	key  []byte
 	aead cipher.AEAD
+}
+
+//NewPacker : Create New Packer
+func NewPacker(key []byte) {
+	h := blake3.New()
+	h.Write(key)
+	p := new(Packer)
+	p.aead = chacha20poly1305.NewX(h.Sum(nil))
 }
 
 //NewToken : Create New token
