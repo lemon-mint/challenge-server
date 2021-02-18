@@ -1,2 +1,2 @@
-# nginx-challenge-server
+# challenge-server
 Server that separates normal and malicious traffic
