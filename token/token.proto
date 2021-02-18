@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package token;
+
+message AccessToken {
+    int64 timestamp = 1;
+    int64 expire = 2;
+    string id = 3;
+    bytes nonce = 4;
+}
