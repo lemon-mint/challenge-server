@@ -1,11 +1,14 @@
 package main
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,7 +35,27 @@ func main() {
 		case "/token/new":
 			i := ctx.QueryArgs().Peek("i")
 			nonce := ctx.QueryArgs().Peek("nonce")
-			hash := sha256.Sum256([]byte(string(nonce) + string(i)))
+			parts := strings.Split(string(nonce), ".")
+			if len(parts) != 3 {
+				ctx.SetStatusCode(403)
+				return
+			}
+			exp, err := strconv.Atoi(parts[1])
+			if err != nil {
+				ctx.SetStatusCode(403)
+				return
+			}
+			if exp <= int(time.Now().UTC().Unix()) {
+				ctx.SetStatusCode(403)
+				return
+			}
+			h := hmac.New(sha256.New, key)
+			h.Write([]byte(parts[0] + "." + parts[1]))
+			if base64.RawURLEncoding.EncodeToString(h.Sum(nil)) != parts[2] {
+				ctx.SetStatusCode(403)
+				return
+			}
+			hash := sha256.Sum256([]byte(string(parts[0]) + string(i)))
 			if !strings.HasPrefix(hex.EncodeToString(hash[:]), strings.Repeat("0", 5)) {
 				ctx.SetStatusCode(403)
 				return
@@ -56,6 +79,12 @@ func main() {
 			ctx.WriteString(uuid)
 		case "/challenge":
 			ctx.SendFile("challenges/js/index.html")
+		case "/token/nonce":
+			nonce := randstr(16)
+			exp := fmt.Sprint(time.Now().UTC().Add(time.Second * 120).Unix())
+			h := hmac.New(sha256.New, key)
+			h.Write([]byte(nonce + "." + exp))
+			ctx.WriteString(nonce + "." + exp + "." + base64.RawURLEncoding.EncodeToString(h.Sum(nil)))
 		default:
 			ctx.SetStatusCode(404)
 			ctx.SetBodyString("Error 404 Not Found")

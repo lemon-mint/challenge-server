@@ -14,21 +14,37 @@
         <h1>Checking your browser...</h1>
     </div>
     <script>
-        function gen(nonce) {
+        function gen(nonce, token) {
             let i = 0;
             const prefix = "0".repeat(5);
             while (true) {
                 if (sha256(nonce + i).startsWith(prefix)) {
                     console.log(nonce, prefix, i, sha256(nonce + i));
                     let xhr = new XMLHttpRequest();
-                    xhr.open("GET", `/token/new?nonce=${nonce}&i=${String(i)}`);
+                    xhr.open("GET", `/token/new?nonce=${token}&i=${String(i)}`);
                     xhr.withCredentials = true;
+                    xhr.onreadystatechange = ()=>{
+                        if (xhr.readyState == 4) {
+                            setTimeout(()=>{
+                                window.location.reload();
+                            },300);
+                        }
+                    }
                     xhr.send();
                     break
                 }
                 i++;
             }
         }
+        let xhr = new XMLHttpRequest();
+        xhr.open("GET", `/token/nonce`);
+        xhr.withCredentials = true;
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                gen(xhr.responseText.split(".")[0], xhr.responseText)
+            }
+        }
+        xhr.send();
     </script>
 </body>
 
