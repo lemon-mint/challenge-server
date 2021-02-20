@@ -72,6 +72,7 @@ func main() {
 			tracker.SetPath("/")
 			ctx.Response.Header.SetCookie(tracker)
 			fasthttp.ReleaseCookie(tracker)
+			fmt.Println("New Token:", token)
 		case "/random":
 			buf := make([]byte, 32)
 			io.ReadFull(rand.Reader, buf)
