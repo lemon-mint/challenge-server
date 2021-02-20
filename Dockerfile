@@ -4,7 +4,7 @@ RUN apk update
 RUN apk add git upx gcc musl-dev
 ADD . /app
 WORKDIR /app
-RUN go build -ldflags="-s -w" -v -o server verifyserver
+RUN go build -ldflags="-s -w" -v -o server ./verifyserver
 RUN upx --lzma /app/server
 
 FROM alpine:latest
