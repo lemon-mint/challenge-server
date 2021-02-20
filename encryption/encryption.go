@@ -32,7 +32,7 @@ func NewPacker(key []byte) *Packer {
 }
 
 //NewToken : Create New token
-func (p *Packer) NewToken(exp time.Duration, id string) ([]byte, error) {
+func (p *Packer) NewToken(exp time.Duration, id string) (string, error) {
 	buf := make([]byte, 8)
 	io.ReadFull(rand.Reader, buf)
 	t := &token.AccessToken{
@@ -45,18 +45,18 @@ func (p *Packer) NewToken(exp time.Duration, id string) ([]byte, error) {
 	io.ReadFull(rand.Reader, nonce)
 	msg, err := proto.Marshal(t)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	encrypted := p.aead.Seal(nil, nonce, msg, nil)
 	buf = make([]byte, len(encrypted)+p.aead.NonceSize())
 	copy(buf[:p.aead.NonceSize()], nonce)
 	copy(buf[p.aead.NonceSize():], encrypted)
-	return buf, nil
+	return base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
 //Verify : token
 func (p *Packer) Verify(tokenString string, id string) bool {
-	encrypted, err := base64.RawStdEncoding.DecodeString(tokenString)
+	encrypted, err := base64.RawURLEncoding.DecodeString(tokenString)
 	if err != nil {
 		return false
 	}
