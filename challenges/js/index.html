@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/gh/emn178/js-sha256@v0.9.0/build/sha256.min.js"></script>
+    <title>Checking your browser...</title>
+</head>
+
+<body>
+    <div style="width: 100%; height: 40%; background-color: antiquewhite; border: 0px;">
+        <h1>Checking your browser...</h1>
+    </div>
+    <script>
+        function gen(nonce) {
+            let i = 0;
+            const prefix = "0".repeat(5);
+            while (true) {
+                if (sha256(nonce + i).startsWith(prefix)) {
+                    console.log(nonce, prefix, i, sha256(nonce + i));
+                    let xhr = new XMLHttpRequest();
+                    xhr.open("GET", `/token/new?nonce=${nonce}&i=${String(i)}`);
+                    xhr.withCredentials = true;
+                    xhr.send();
+                    break
+                }
+                i++;
+            }
+        }
+    </script>
+</body>
+
+</html>

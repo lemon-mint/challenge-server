@@ -15,3 +15,5 @@
 # vendor/
 
 seal.test
+*.br
+*.brotli
