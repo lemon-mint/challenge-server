@@ -9,6 +9,6 @@ RUN upx --lzma /app/server
 
 FROM alpine:latest
 COPY --from=build /app /app
-EXPOSE 18080
+EXPOSE 59710
 WORKDIR /app
 CMD /app/server
