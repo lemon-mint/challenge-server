@@ -14,7 +14,7 @@ server {
         proxy_pass http://127.0.0.1:59710;
         proxy_set_header Host $host;
         proxy_set_header X-Original-URI $request_uri;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
     }
     
     location = /verify {
@@ -23,7 +23,7 @@ server {
         proxy_set_header Content-Length "";
         proxy_set_header Host $host;
         proxy_set_header X-Original-URI $request_uri;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
     }
     
     error_page   401 402 403 404  /auth;
@@ -31,7 +31,7 @@ server {
         proxy_pass http://127.0.0.1:59710/challenge;
         proxy_set_header Host $host;
         proxy_set_header X-Original-URI $request_uri;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
     }
     
     error_page   500 502 503 504  /50x.html;
