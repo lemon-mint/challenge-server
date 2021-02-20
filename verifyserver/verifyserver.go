@@ -32,7 +32,7 @@ func main() {
 			ctx.SetContentType("text/html")
 		case "/verify/cookie":
 			verifyWithCookie(ctx, p)
-		case "/token/new":
+		case "/_v_challenge/token/new":
 			i := ctx.QueryArgs().Peek("i")
 			nonce := ctx.QueryArgs().Peek("nonce")
 			parts := strings.Split(string(nonce), ".")
@@ -79,7 +79,7 @@ func main() {
 			ctx.WriteString(uuid)
 		case "/challenge":
 			ctx.SendFile("challenges/js/index.html")
-		case "/token/nonce":
+		case "/_v_challenge/token/nonce":
 			nonce := randstr(16)
 			exp := fmt.Sprint(time.Now().UTC().Add(time.Second * 120).Unix())
 			h := hmac.New(sha256.New, key)

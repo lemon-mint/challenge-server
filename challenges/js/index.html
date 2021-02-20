@@ -21,7 +21,7 @@
                 if (sha256(nonce + i).startsWith(prefix)) {
                     console.log(nonce, prefix, i, sha256(nonce + i));
                     let xhr = new XMLHttpRequest();
-                    xhr.open("GET", `/token/new?nonce=${token}&i=${String(i)}`);
+                    xhr.open("GET", `/_v_challenge/token/new?nonce=${token}&i=${String(i)}`);
                     xhr.withCredentials = true;
                     xhr.onreadystatechange = ()=>{
                         if (xhr.readyState == 4) {
@@ -37,7 +37,7 @@
             }
         }
         let xhr = new XMLHttpRequest();
-        xhr.open("GET", `/token/nonce`);
+        xhr.open("GET", `/_v_challenge/token/nonce`);
         xhr.withCredentials = true;
         xhr.onreadystatechange = function () {
             if (xhr.readyState == 4 && xhr.status == 200) {
