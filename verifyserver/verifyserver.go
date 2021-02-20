@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
+	"time"
 
 	"github.com/lemon-mint/challenge-server/encryption"
 	"github.com/valyala/fasthttp"
@@ -26,7 +27,23 @@ func main() {
 		case "/verify/cookie":
 			verifyWithCookie(ctx, p)
 		case "/token/new":
-
+			token, err := p.NewToken(time.Minute*30, getID(ctx))
+			if err != nil {
+				ctx.SetStatusCode(403)
+				return
+			}
+			tracker := fasthttp.AcquireCookie()
+			tracker.SetKey("_go_clearance")
+			tracker.SetHTTPOnly(true)
+			tracker.SetValue(token)
+			tracker.SetPath("/")
+			ctx.Response.Header.SetCookie(tracker)
+			fasthttp.ReleaseCookie(tracker)
+		case "/random":
+			buf := make([]byte, 32)
+			io.ReadFull(rand.Reader, buf)
+			uuid := base64.RawURLEncoding.EncodeToString(buf)
+			ctx.WriteString(uuid)
 		default:
 			ctx.SetStatusCode(404)
 			ctx.SetBodyString("Error 404 Not Found")
@@ -57,7 +74,6 @@ func getID(ctx *fasthttp.RequestCtx) string {
 	h.WriteString(ctx.RemoteIP().String())
 	userTrack := ctx.Request.Header.Cookie("_clearance_track")
 	if userTrack == nil {
-		ctx.SetStatusCode(403)
 		buf := make([]byte, 8)
 		io.ReadFull(rand.Reader, buf)
 		uuid := base64.RawURLEncoding.EncodeToString(buf)

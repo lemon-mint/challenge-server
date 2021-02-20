@@ -72,7 +72,7 @@ func (p *Packer) Verify(tokenString string, id string) bool {
 	if err != nil {
 		return false
 	}
-	if t.Expire >= time.Now().Unix() {
+	if t.Expire <= time.Now().Unix() {
 		return false
 	}
 	if t.Id != id {
