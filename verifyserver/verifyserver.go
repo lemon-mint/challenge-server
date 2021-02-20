@@ -53,10 +53,10 @@ func main() {
 
 func verifyWithCookie(ctx *fasthttp.RequestCtx, p *encryption.Packer) {
 	token := ctx.Request.Header.Cookie("_go_clearance")
-	if token == nil {
+	/*if token == nil {
 		ctx.SetStatusCode(403)
 		return
-	}
+	}*/
 	//fmt.Println(getID(ctx))
 	if !p.Verify(string(token), getID(ctx)) {
 		ctx.SetStatusCode(403)
