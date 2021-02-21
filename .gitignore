@@ -18,3 +18,5 @@ seal.test
 *.br
 *.brotli
 *.gz
+
+.env
