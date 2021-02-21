@@ -5,25 +5,55 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"io"
-	"strconv"
-	"strings"
+	"os"
 	"time"
 
+	"github.com/VictoriaMetrics/fastcache"
+	"github.com/lemon-mint/challenge-server/challenges/js"
 	"github.com/lemon-mint/challenge-server/encryption"
+	"github.com/lemon-mint/godotenv"
+	"github.com/ulule/limiter/v3"
+	"github.com/ulule/limiter/v3/drivers/store/memory"
 	"github.com/valyala/fasthttp"
 	"github.com/zeebo/blake3"
 )
 
 var server = []byte("challengeserver")
 var useXFF bool = true
+var useRateLimit = false
+
+var lim *limiter.Limiter
 
 func main() {
+	godotenv.Load()
 	key := make([]byte, 32)
-	io.ReadFull(rand.Reader, key)
+
+	if os.Getenv("USE_RATE_LIMIT") != "" {
+		useRateLimit = true
+		rate, err := limiter.NewRateFromFormatted(os.Getenv("USE_RATE_LIMIT"))
+		if err != nil {
+			panic(err)
+		}
+		lim = limiter.New(memory.NewStore(), rate)
+	}
+
+	if os.Getenv("SECRET_KEY") == "" {
+		io.ReadFull(rand.Reader, key)
+	} else {
+		h := blake3.New()
+		h.WriteString(os.Getenv("SECRET_KEY"))
+		h.WriteString(os.Getenv("SECRET_KEY"))
+		h.WriteString(os.Getenv("SECRET_KEY"))
+		h.WriteString(os.Getenv("SECRET_KEY"))
+		h.WriteString(os.Getenv("SECRET_KEY"))
+		copy(key, h.Sum(nil))
+	}
 	p := encryption.NewPacker(key)
+
+	banlist := fastcache.New(32)
+
 	fasthttp.ListenAndServe(":59710", func(ctx *fasthttp.RequestCtx) {
 		//ctx.Response.Header.SetServerBytes(server)
 		switch string(ctx.Path()) {
@@ -31,32 +61,9 @@ func main() {
 			ctx.SetBody(indexHTML)
 			ctx.SetContentType("text/html")
 		case "/verify/cookie":
-			verifyWithCookie(ctx, p)
+			verifyWithCookie(ctx, p, banlist)
 		case "/_v_challenge/token/new":
-			i := ctx.QueryArgs().Peek("i")
-			nonce := ctx.QueryArgs().Peek("nonce")
-			parts := strings.Split(string(nonce), ".")
-			if len(parts) != 3 {
-				ctx.SetStatusCode(403)
-				return
-			}
-			exp, err := strconv.Atoi(parts[1])
-			if err != nil {
-				ctx.SetStatusCode(403)
-				return
-			}
-			if exp <= int(time.Now().UTC().Unix()) {
-				ctx.SetStatusCode(403)
-				return
-			}
-			h := hmac.New(sha256.New, key)
-			h.Write([]byte(parts[0] + "." + parts[1]))
-			if base64.RawURLEncoding.EncodeToString(h.Sum(nil)) != parts[2] {
-				ctx.SetStatusCode(403)
-				return
-			}
-			hash := sha256.Sum256([]byte(string(parts[0]) + string(i)))
-			if !strings.HasPrefix(hex.EncodeToString(hash[:]), strings.Repeat("0", 5)) {
+			if !js.Verify(ctx, key, banlist) {
 				ctx.SetStatusCode(403)
 				return
 			}
@@ -86,6 +93,18 @@ func main() {
 			h := hmac.New(sha256.New, key)
 			h.Write([]byte(nonce + "." + exp))
 			ctx.WriteString(nonce + "." + exp + "." + base64.RawURLEncoding.EncodeToString(h.Sum(nil)))
+		case "/revoke":
+			token := ctx.Request.Header.Cookie("_go_clearance")
+			if token != nil {
+				var info []byte
+				info = append(info, []byte(time.Now().String())...)
+				info = append(info, ctx.UserAgent()...)
+				info = append(info, ctx.RemoteIP()...)
+				info = append(info, ctx.Request.Header.Peek("X-Forwarded-For")...)
+
+				banlist.Set(token, info)
+				ctx.WriteString("revoked")
+			}
 		default:
 			ctx.SetStatusCode(404)
 			ctx.SetBodyString("Error 404 Not Found")
@@ -93,14 +112,33 @@ func main() {
 	})
 }
 
-func verifyWithCookie(ctx *fasthttp.RequestCtx, p *encryption.Packer) {
+func verifyWithCookie(ctx *fasthttp.RequestCtx, p *encryption.Packer, banlist *fastcache.Cache) {
+
 	token := ctx.Request.Header.Cookie("_go_clearance")
-	/*if token == nil {
+	if token == nil {
 		ctx.SetStatusCode(403)
 		return
-	}*/
+	}
+
+	if banlist.Has(token) {
+		ctx.SetStatusCode(403)
+		return
+	}
+	strtoken := string(token)
+	if useRateLimit {
+		limctx, err := lim.Get(ctx, strtoken)
+		if err != nil {
+			ctx.SetStatusCode(403)
+			return
+		}
+		if limctx.Reached {
+			ctx.SetStatusCode(403)
+			return
+		}
+	}
+
 	//fmt.Println(getID(ctx))
-	if !p.Verify(string(token), getID(ctx)) {
+	if !p.Verify(strtoken, getID(ctx)) {
 		ctx.SetStatusCode(403)
 		return
 	}
