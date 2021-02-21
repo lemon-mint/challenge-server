@@ -22,7 +22,7 @@ func Verify(ctx *fasthttp.RequestCtx, key []byte, banlist *fastcache.Cache) bool
 		ctx.SetStatusCode(403)
 		return false
 	}
-	if banlist.Has([]byte(parts[3])) {
+	if banlist.Has([]byte(parts[2])) {
 		ctx.SetStatusCode(403)
 		return false
 	}
@@ -46,6 +46,6 @@ func Verify(ctx *fasthttp.RequestCtx, key []byte, banlist *fastcache.Cache) bool
 		ctx.SetStatusCode(403)
 		return false
 	}
-	banlist.Set([]byte(parts[3]), hash[:])
+	banlist.Set([]byte(parts[2]), hash[:])
 	return true
 }
